@@ -88,12 +88,12 @@ class GameState:
                     validSquares = [(checkRow, checkCol)]
                 else:
                     for i in range(1, 8):
-                        validSquare = (kingRow + check[2]*i, kingCol + check[3] * i)  # check[2] and check[3] are the check directions
+                        validSquare = (kingRow + check[2] * i, kingCol + check[3] * i)  # check[2] and check[3] are the check directions
                         validSquares.append(validSquare)
                         if validSquare[0] == checkRow and validSquare[1] == checkCol:  # reached the enemy piece
                             break
                 #  get rid of any moves that don't block the check or move king
-                for i in range(len(moves)-1, -1, -1):
+                for i in range(len(moves) - 1, -1, -1):
                     if moves[i].pieceMoved[1] != 'K':  # move doesn't move king, so it must block or capture piece
                         if not (moves[i].endRow, moves[i].endCol) in validSquares:
                             moves.remove(moves[i])
@@ -190,30 +190,46 @@ class GameState:
     '''
 
     def getPawnMoves(self, r, c, moves):
+
+        piecePinned = False
+        pinDirection = ()
+        for i in range(len(self.pins) - 1, -1, -1):
+            if self.pins[i][0] == r and self.pins[i][1] == c:
+                piecePinned = True
+                pinDirection = (self.pins[i][2], self.pins[i][3])
+                self.pins.remove(self.pins[i])
+                break
+
         if self.whiteToMove:  # white pawn moves
             if self.board[r - 1][c] == "--":  # 1 square pawn advance
-                moves.append(Move((r, c), (r - 1, c), self.board))
-                if r == 6 and self.board[r - 2][c] == "--":
-                    moves.append(Move((r, c), (r - 2, c), self.board))
-
+                if not piecePinned or pinDirection == (-1, 0):
+                    moves.append(Move((r, c), (r - 1, c), self.board))
+                    if r == 6 and self.board[r - 2][c] == "--":
+                        moves.append(Move((r, c), (r - 2, c), self.board))
+            # captures
             if c - 1 >= 0:  # capture to the left
                 if self.board[r - 1][c - 1][0] == 'b':  # enemy piece to capture
-                    moves.append(Move((r, c), (r - 1, c - 1), self.board))
+                    if not piecePinned or pinDirection == (-1, -1):
+                        moves.append(Move((r, c), (r - 1, c - 1), self.board))
             if c + 1 <= 7:  # capture to the right
-                if self.board[r - 1][c + 1][0] == 'b':  # enemy piece to capture
-                    moves.append(Move((r, c), (r - 1, c + 1), self.board))
-        else:
+                if not piecePinned or pinDirection == (-1, 1):
+                    if self.board[r - 1][c + 1][0] == 'b':  # enemy piece to capture
+                        moves.append(Move((r, c), (r - 1, c + 1), self.board))
+        else:  # black pawn moves
             if self.board[r + 1][c] == "--":  # 1 square pawn advance
-                moves.append(Move((r, c), (r + 1, c), self.board))
-                if r == 1 and self.board[r + 2][c] == "--":
-                    moves.append(Move((r, c), (r + 2, c), self.board))
-
+                if not piecePinned or pinDirection == (1, 0):
+                    moves.append(Move((r, c), (r + 1, c), self.board))
+                    if r == 1 and self.board[r + 2][c] == "--":
+                        moves.append(Move((r, c), (r + 2, c), self.board))
+            # captures
             if c - 1 >= 0:  # capture to the left
-                if self.board[r + 1][c - 1][0] == 'w':  # enemy piece to capture
-                    moves.append(Move((r, c), (r + 1, c - 1), self.board))
+                if not piecePinned or pinDirection == (1, -1):
+                    if self.board[r + 1][c - 1][0] == 'w':  # enemy piece to capture
+                        moves.append(Move((r, c), (r + 1, c - 1), self.board))
             if c + 1 <= 7:  # capture to the right
-                if self.board[r + 1][c + 1][0] == 'w':  # enemy piece to capture
-                    moves.append(Move((r, c), (r + 1, c + 1), self.board))
+                if not piecePinned or pinDirection == (1, 1):
+                    if self.board[r + 1][c + 1][0] == 'w':  # enemy piece to capture
+                        moves.append(Move((r, c), (r + 1, c + 1), self.board))
 
         # add pawn promotions later
 
