@@ -68,6 +68,41 @@ class GameState:
     def getValidMoves(self):
         moves = []
         self.inCheck, self.pins, self.checks = self.checkForPinsAndChecks()
+        if self.whiteToMove:
+            kingRow = self.whiteKingLocation[0]
+            kingCol = self.whiteKingLocation[1]
+        else:
+            kingRow = self.blackKingLocation[0]
+            kingCol = self.blackKingLocation[1]
+        if self.inCheck:
+            if len(self.checks) == 1:  # only 1 check, block check or move king
+                moves = self.getAllPossibleMoves()
+                # to block a check you must move a piece into one the squares between the enemy piece and king
+                check = self.checks[0]
+                checkRow = check[0]
+                checkCol = check[1]
+                pieceChecking = self.board[checkRow][checkCol]  # enemy piece causing the check
+                validSquares = []  # squares that the pieces can move to
+                #  if knight, must capture knight or move king, other pieces can be blocked
+                if pieceChecking[1] == 'N':
+                    validSquares = [(checkRow, checkCol)]
+                else:
+                    for i in range(1, 8):
+                        validSquare = (kingRow + check[2]*i, kingCol + check[3] * i)  # check[2] and check[3] are the check directions
+                        validSquares.append(validSquare)
+                        if validSquare[0] == checkRow and validSquare[1] == checkCol:  # reached the enemy piece
+                            break
+                #  get rid of any moves that don't block the check or move king
+                for i in range(len(moves)-1, -1, -1):
+                    if moves[i].pieceMoved[1] != 'K':  # move doesn't move king, so it must block or capture piece
+                        if not (moves[i].endRow, moves[i].endCol) in validSquares:
+                            moves.remove(moves[i])
+            else:  # double check, king has to move
+                self.getKingMoves(kingRow, kingCol, moves)
+
+        else:
+            moves = self.getAllPossibleMoves()
+
         return self.getAllPossibleMoves()  # not considering checks as of now
 
     '''
@@ -76,8 +111,6 @@ class GameState:
 
     def getAllPossibleMoves(self):
         moves = []
-        self.inCheck, self.pins, self.checks = self.checkForPinsAndChecks()
-        
         for r in range(len(self.board)):  # number of rows
             for c in range(len(self.board[r])):  # number of columns
                 turn = self.board[r][c][0]
